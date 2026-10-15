@@ -3,7 +3,7 @@
  * pokud data chybí, sekce se nevykreslí (nic se nedomýšlí ani nevyplňuje balastem).
  */
 import type { LearnChapter, LearnFact, LearnSupplier } from '@/api/types';
-import { factsOf, splitMilestone, VISUAL_KINDS } from './facts';
+import { factsOf, NARRATIVE_KINDS, splitMilestone, VISUAL_KINDS } from './facts';
 import { LocationMap } from './LocationMap';
 
 /* ---------- Kapitola 1: hero, klíčová čísla, mapa ---------- */
@@ -61,7 +61,8 @@ export function StoryVisual({ chapter }: { chapter: LearnChapter }) {
     <>
       {vision.map((v) => (
         <blockquote key={v.value} className="quote-line">
-          <span className="micro-label mb-1 block !text-rose-dark">{v.label}</span>
+          {/* Studentský popisek podle druhu – popisky faktů jsou určené správci. */}
+          <span className="micro-label mb-1 block !text-rose-dark">{v.kind === 'mission' ? 'Mise' : 'Vize'}</span>
           {v.value}
         </blockquote>
       ))}
@@ -241,7 +242,7 @@ export function RecapVisual() {
 
 export function RemainingFacts({ chapter }: { chapter: LearnChapter }) {
   const consumed = new Set(VISUAL_KINDS[chapter.number] ?? []);
-  const rest = chapter.facts.filter((f) => !consumed.has(f.kind));
+  const rest = chapter.facts.filter((f) => !consumed.has(f.kind) && !NARRATIVE_KINDS.has(f.kind));
   if (rest.length === 0) return null;
   return (
     <section className="my-8">

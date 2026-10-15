@@ -3,7 +3,7 @@
  */
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Put } from '@nestjs/common';
 import { Roles } from '../auth/auth.decorators';
-import { AdminProductResponseDto, ConfirmCandidateDto, ReplaceBestsellersDto, UpdateProductDto } from './dto/product.dto';
+import { AddProductFromUrlDto, AdminProductResponseDto, ConfirmCandidateDto, ReplaceBestsellersDto, UpdateProductDto } from './dto/product.dto';
 import { ProductsService } from './products.service';
 
 @Controller('admin')
@@ -29,6 +29,12 @@ export class ProductsController {
   async match(@Param('supplierId', ParseUUIDPipe) supplierId: string): Promise<AdminProductResponseDto[]> {
     await this.products.matchBestsellers(supplierId);
     return (await this.products.list(supplierId)).map((p) => AdminProductResponseDto.from(p));
+  }
+
+  /** Přidání produktu do reprezentativního výběru podle URL stránky produktu. */
+  @Post('suppliers/:supplierId/products/from-url')
+  async addFromUrl(@Param('supplierId', ParseUUIDPipe) supplierId: string, @Body() dto: AddProductFromUrlDto): Promise<AdminProductResponseDto> {
+    return AdminProductResponseDto.from(await this.products.addFromUrl(supplierId, dto.url));
   }
 
   @Patch('products/:id')

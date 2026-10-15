@@ -53,6 +53,8 @@ interface SentenceRule {
   pattern: RegExp;
   /** Doplňková podmínka (např. věta musí obsahovat číslo). */
   requires?: RegExp;
+  /** Věta s tímto vzorem se pravidlem nezpracuje (jiný význam téhož klíčového slova). */
+  excludes?: RegExp;
   /** Vytáhne krátkou hodnotu; jinak se použije zkrácená věta. */
   value?: (sentence: string) => string | null;
   confidence: FactConfidence;
@@ -78,6 +80,8 @@ const SENTENCE_RULES: SentenceRule[] = [
     label: 'Lhůta výroby / dodání',
     pattern: /\b(lead ?time|delivery time|production time|turnaround|dispatch|dodací lhůt\w*|doba výroby|levertijd|lieferzeit|productietijd|working days|business days|pracovních dn\w*|werkdagen|arbeitstage)\b/i,
     requires: DURATION,
+    // „do 3 pracovních dnů nahlaste vadu“ je lhůta reklamace či platby, ne výroby/dodání.
+    excludes: /\b(complain\w*|claims?|defect\w*|notify|reklamac\w*|klacht\w*|payment|invoice|faktur\w*)\b/i,
     value: (s) => DURATION.exec(s)?.[0] ?? null,
     confidence: 'medium',
   },
@@ -306,13 +310,16 @@ function extractFromSegment(segment: ExtractionSegment, out: CandidateCollector)
   const base = { sourceId: segment.sourceId, location: segment.location, origin: toFactOrigin(segment.origin) };
 
   for (const sentence of splitSentences(segment.text)) {
-    if (sentence.length < 20 || sentence.length > 600) continue;
+    // Krátké řádky „Klíč: hodnota s číslem“ (např. „MOQ: 300 pieces“) jsou často nejpřesnější fakta.
+    const isKeyValue = /^[^:]{2,30}:\s*\S/.test(sentence) && /\d/.test(sentence);
+    if ((sentence.length < 20 && !isKeyValue) || sentence.length > 600) continue;
     const quote = truncate(sentence, 420);
 
     // Obecná pravidla podle klíčových slov.
     for (const rule of SENTENCE_RULES) {
       if (!rule.pattern.test(sentence)) continue;
       if (rule.requires && !rule.requires.test(sentence)) continue;
+      if (rule.excludes?.test(sentence)) continue;
       const extracted = rule.value?.(sentence) ?? null;
       // U sídla bez rozpoznané země nemá smysl navrhovat fakt.
       if (rule.kind === 'headquarters' && !extracted) continue;

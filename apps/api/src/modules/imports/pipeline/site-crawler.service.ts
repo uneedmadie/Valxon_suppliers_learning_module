@@ -47,7 +47,7 @@ const TOPICS: { topic: string; pattern: RegExp; priority: number; max: number }[
   { topic: 'faq', pattern: /(faq|questions|vragen|fragen|otazky|how-to-order|ordering)/, priority: 8, max: 1 },
   { topic: 'vision', pattern: /(vision|mission|vize|mise|purpose|values|hodnoty|waarden|werte)/, priority: 8, max: 1 },
   { topic: 'history', pattern: /(history|historie|geschiedenis|geschichte|timeline|milestones?)/, priority: 8, max: 1 },
-  { topic: 'sustainability', pattern: /(sustainab|duurzaam|nachhaltig|udrzitel|impact|csr|responsib|environment|esg)/, priority: 7, max: 1 },
+  { topic: 'sustainability', pattern: /(sustainab|duurzaam|nachhaltig|udrzitel|impact|csr|responsib|environment|esg|(^|[/ -])eco($|[/ -]))/, priority: 7, max: 1 },
   { topic: 'terms', pattern: /(terms|conditions|voorwaarden|agb|podminky|obchodni)/, priority: 6, max: 1 },
   { topic: 'samples', pattern: /(sample|vzor|muster|monster|stalen)/, priority: 6, max: 1 },
   { topic: 'contact', pattern: /(contact|kontakt)/, priority: 5, max: 1 },

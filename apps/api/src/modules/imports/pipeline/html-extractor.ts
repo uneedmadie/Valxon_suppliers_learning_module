@@ -212,6 +212,8 @@ export function extractTemplateProducts(links: PageLink[], pageUrl: string): Pag
       continue;
     }
     if (url.hostname.replace(/^www\./, '') !== host || url.search) continue;
+    // Soubory (PDF, obrázky, dokumenty) nejsou produktové stránky.
+    if (/\.(pdf|jpe?g|png|gif|webp|svg|zip|docx?|xlsx?)$/i.test(url.pathname)) continue;
     const segments = url.pathname.split('/').filter(Boolean);
     // Proměnný segment musí být aspoň na 2. úrovni (ne horní menu typu /about, /contact);
     // jazykový prefix (/en/, /de-at/) se za úroveň nepočítá.

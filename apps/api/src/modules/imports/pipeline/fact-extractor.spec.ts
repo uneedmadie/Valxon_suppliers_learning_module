@@ -31,6 +31,16 @@ describe('extractFacts', () => {
     expect(of('contact')[0].value).toBe('sales@acme.test');
   });
 
+  it('čte i krátké řádky „MOQ: 300 pieces“', () => {
+    expect(extractFacts([], [seg('MOQ: 300 pieces')]).find((f) => f.kind === 'moq')?.value).toBe('300 pieces');
+  });
+
+  it('lhůtu pro nahlášení vady nepovažuje za lhůtu dodání', () => {
+    const complaint = extractFacts([], [seg('If goods are defective, the Buyer must notify the Supplier within 3 working days.')]);
+    expect(complaint.some((f) => f.kind === 'lead_time')).toBe(false);
+    expect(complaint.some((f) => f.kind === 'complaints')).toBe(true);
+  });
+
   it('všechna fakta mají zdroj a lokaci; copyright není milník', () => {
     expect(facts.every((f) => f.sourceId === 's1' && f.location.length > 0)).toBe(true);
     expect(of('milestone').some((f) => f.value.includes('2024'))).toBe(false);

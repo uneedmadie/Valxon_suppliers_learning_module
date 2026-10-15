@@ -46,6 +46,13 @@ export class UpdateProductDto {
   showInLesson?: boolean;
 }
 
+/** Přidání produktu podle URL jeho stránky. */
+export class AddProductFromUrlDto {
+  @IsUrl({ protocols: ['http', 'https'], require_protocol: true })
+  @MaxLength(2048)
+  url!: string;
+}
+
 /** Potvrzení jednoho z kandidátů párování. */
 export class ConfirmCandidateDto {
   @IsInt()

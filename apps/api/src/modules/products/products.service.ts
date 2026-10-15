@@ -34,6 +34,8 @@ const MAX_DISCOVERED = 80;
 @Injectable()
 export class ProductsService {
   private readonly logger = new Logger(ProductsService.name);
+  /** Úvodní (obecný) obrázek webu podle originu – ten nikdy není fotografií konkrétního produktu. */
+  private readonly siteImageCache = new Map<string, string | null>();
 
   constructor(
     @InjectRepository(Product) private readonly products: Repository<Product>,
@@ -54,7 +56,7 @@ export class ProductsService {
     let enriched = 0;
     for (const product of candidates) {
       const page = await this.fetchProductPage(product.productUrl!);
-      if (!page?.imageUrl) continue;
+      if (!page?.imageUrl || (await this.isImageUsedElsewhere(supplierId, page.imageUrl))) continue;
       product.imageUrl = page.imageUrl;
       product.imageSourceUrl = page.url;
       product.description ??= page.description;
@@ -194,6 +196,56 @@ export class ProductsService {
     }
   }
 
+  /**
+   * Přidá produkt do reprezentativního výběru podle URL jeho stránky (u webů bez
+   * produktového výpisu). Název, popis a fotografie pocházejí přímo z té stránky.
+   * Nejde o bestseller – ten může určit jen seznam správce.
+   * @throws BadRequestException pokud stránku nelze bezpečně načíst
+   */
+  async addFromUrl(supplierId: string, url: string): Promise<Product> {
+    const page = await this.fetchProductPage(url);
+    if (!page) throw new BadRequestException('Stránku produktu se nepodařilo načíst (síť, robots.txt nebo chybějící název).');
+    // Stejný obrázek u jiného produktu = obecný obrázek webu, ne fotografie tohoto výrobku.
+    if (page.imageUrl && (await this.isImageUsedElsewhere(supplierId, page.imageUrl))) page.imageUrl = null;
+    const count = await this.products.countBy({ supplierId, listType: 'discovered' });
+    return this.products.save(
+      this.products.create({
+        supplierId,
+        listType: 'discovered',
+        position: count + 1,
+        name: page.name,
+        sku: page.sku,
+        productUrl: page.url,
+        imageUrl: page.imageUrl,
+        imageSourceUrl: page.imageUrl ? page.url : null,
+        description: page.description,
+        material: page.material,
+        matchStatus: 'matched',
+        showInLesson: true,
+        location: page.url,
+      }),
+    );
+  }
+
+  /** Zda obrázek už používá jiný produkt dodavatele (sdílený obrázek nemůže být fotkou konkrétního výrobku). */
+  private async isImageUsedElsewhere(supplierId: string, imageUrl: string): Promise<boolean> {
+    return this.products.existsBy({ supplierId, imageUrl });
+  }
+
+  /** Úvodní obrázek webu (og:image domovské stránky), s mezipamětí podle originu. */
+  private async siteImage(url: string): Promise<string | null> {
+    const origin = new URL(url).origin;
+    if (!this.siteImageCache.has(origin)) {
+      try {
+        const fetched = await this.http.fetch(`${origin}/`, { maxBytes: 5 * 1024 * 1024, accept: 'text/html' });
+        this.siteImageCache.set(origin, extractHtml(fetched.body.toString('utf8'), fetched.finalUrl).ogImage);
+      } catch {
+        this.siteImageCache.set(origin, null);
+      }
+    }
+    return this.siteImageCache.get(origin) ?? null;
+  }
+
   /** Ruční úprava produktu správcem. */
   async update(id: string, dto: UpdateProductDto): Promise<Product> {
     const product = await this.getOrFail(id);
@@ -238,13 +290,17 @@ export class ProductsService {
       const fetched = await this.http.fetch(url, { maxBytes: 5 * 1024 * 1024, accept: 'text/html' });
       const page = extractHtml(fetched.body.toString('utf8'), fetched.finalUrl);
       const primary = page.products.find((p) => p.origin !== 'link');
-      const name = primary?.name ?? page.ogTitle ?? page.title;
+      // Název bez přípony webu („SeaTowel | Hypon“ → „SeaTowel“).
+      const rawName = primary?.name ?? page.ogTitle ?? page.title;
+      const name = rawName.split(/\s[|–]\s/)[0]?.trim() || rawName;
       if (!name) return null;
+      // Obrázek ze strukturovaných dat produktu je spolehlivý; og:image jen pokud není obecným obrázkem celého webu.
+      const ogImage = page.ogImage && page.ogImage !== (await this.siteImage(fetched.finalUrl)) ? page.ogImage : null;
       return {
         name: truncate(name, 300),
         url: fetched.finalUrl,
         sku: primary?.sku ?? null,
-        imageUrl: primary?.imageUrl ?? page.ogImage,
+        imageUrl: primary?.imageUrl ?? ogImage,
         description: primary?.description ?? page.metaDescription,
         material: primary?.material ?? null,
       };

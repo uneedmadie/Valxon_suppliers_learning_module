@@ -14,6 +14,7 @@ import { formatBestsellers, parseBestsellers } from './bestsellers';
 export function ProductsTab({ supplierId }: { supplierId: string }) {
   const { data, error, loading, reload, setData } = useApi<AdminProduct[]>(`/admin/suppliers/${supplierId}/products`);
   const [listText, setListText] = useState<string | null>(null);
+  const [productUrl, setProductUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<ApiError | string | null>(null);
 
@@ -67,6 +68,17 @@ export function ProductsTab({ supplierId }: { supplierId: string }) {
           Pokud správce nedodá bestsellery, kapitola 4 se jmenuje „Reprezentativní výběr produktů“ a obsahuje produkty, které zde ručně zařadíš.
           {bestsellers.length > 0 && ' (Seznam bestsellerů je vyplněný, proto se v lekci zobrazí bestsellery.)'}
         </p>
+        <div className="mb-4 flex flex-wrap gap-2">
+          <input className="field !w-auto min-w-[320px] flex-1" type="url" placeholder="URL stránky produktu na webu dodavatele" value={productUrl} onChange={(e) => setProductUrl(e.target.value)} aria-label="URL stránky produktu" />
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={!productUrl || busy}
+            onClick={() => void act(async () => { await api(`/admin/suppliers/${supplierId}/products/from-url`, { method: 'POST', body: { url: productUrl } }); setProductUrl(''); })}
+          >
+            Přidat produkt z URL
+          </button>
+        </div>
         <ul className="grid gap-3 md:grid-cols-2">
           {discovered.map((p) => (
             <li key={p.id} className={`flex gap-3 rounded-lg border p-3 ${p.showInLesson ? 'border-rose bg-[#fff8f8]' : 'border-line'}`}>
