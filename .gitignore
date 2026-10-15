@@ -1,0 +1,38 @@
+# Node / TypeScript dependencies and outputs
+node_modules/
+.next/
+dist/
+build/
+coverage/
+.turbo/
+*.tsbuildinfo
+.npm/
+.pnpm-store/
+
+# Personal configuration / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local databases and uploaded supplier data
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+uploads/
+storage/
+data/private/
+supplier-sources/
+
+# Potentially internal-only reference material from this starter
+# Claude can read these local files, but should not commit without permission.
+docs/OFICIALNI_ZADANI.md
+docs/UI_REFERENCE.html
+
+# Windows / OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*.local.json
