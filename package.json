@@ -1,0 +1,28 @@
+{
+  "name": "valxon-academy",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VALXON Academy – import dodavatelů a sedmidílná výuková prezentace (standalone monorepo).",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c red,gray \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm run start:dev -w @valxon/api",
+    "dev:web": "npm run dev -w @valxon/web",
+    "build": "npm run build -w @valxon/api && npm run build -w @valxon/web",
+    "start": "concurrently -k -n api,web -c red,gray \"npm run start:prod -w @valxon/api\" \"npm run start -w @valxon/web\"",
+    "typecheck": "npm run typecheck -w @valxon/api && npm run typecheck -w @valxon/web",
+    "lint": "npm run lint -w @valxon/api && npm run lint -w @valxon/web",
+    "test": "npm run test -w @valxon/api && npm run test -w @valxon/web",
+    "test:e2e": "npm run test:e2e -w @valxon/api",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run test:e2e"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "engines": {
+    "node": ">=20.18"
+  }
+}
